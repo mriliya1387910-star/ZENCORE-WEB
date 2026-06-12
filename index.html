@@ -1,1 +1,391 @@
+<!DOCTYPE html>
+<html>
+<head>
 
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZENCORE-WEB</title>
+
+<style>
+    
+
+*{
+box-sizing:border-box;
+}
+
+body{
+margin:0;
+background:#000;
+color:#00ff9c;
+font-family:monospace;
+height:100vh;
+overflow:hidden;
+}
+
+/* BOOT SCREEN */
+
+#boot{
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+display:flex;
+align-items:center;
+justify-content:center;
+background:#000;
+font-size:22px;
+transition:opacity 1s ease;
+}
+
+#bootText{
+text-align:center;
+}
+
+/* MAIN APP */
+
+#app{
+display:none;
+flex-direction:column;
+height:100vh;
+background:#050505;
+}
+
+#top{
+height:50px;
+display:flex;
+align-items:center;
+justify-content:center;
+background:#001a14;
+border-bottom:2px solid #00ff9c;
+}
+
+#right{
+flex:1;
+display:flex;
+flex-direction:column;
+}
+
+#face{
+height:90px;
+display:flex;
+align-items:center;
+justify-content:center;
+border-bottom:2px solid #00ff9c;
+font-size:28px;
+}
+
+#chat{
+flex:1;
+overflow:auto;
+padding:12px;
+white-space:pre-wrap;
+}
+
+#inputBox{
+height:55px;
+border-top:2px solid #00ff9c;
+display:flex;
+}
+
+#prompt{
+flex:1;
+background:#001a14;
+border:none;
+color:#00ff9c;
+font-family:monospace;
+padding:12px;
+outline:none;
+font-size:16px;
+}
+
+#status{
+height:30px;
+background:#001a14;
+display:flex;
+align-items:center;
+justify-content:flex-end;
+padding-right:12px;
+font-size:12px;
+}
+
+</style>
+</head>
+
+<body>
+
+<!-- BOOT -->
+<div id="boot">
+<div id="bootText"></div>
+</div>
+
+<!-- APP -->
+<div id="app">
+
+<div id="top">ZENCORE V.1 WEB</div>
+
+<div id="right">
+
+<div id="face">( ◉_◉ )</div>
+<div id="chat"></div>
+
+<div id="inputBox">
+<input id="prompt" placeholder="> username">
+</div>
+
+</div>
+
+<div id="status">NOT LOGGED IN</div>
+
+</div>
+
+<script>
+
+const API="http://SERVER-IP/api/generate"
+
+const boot=document.getElementById("boot")
+const bootText=document.getElementById("bootText")
+const app=document.getElementById("app")
+const chat=document.getElementById("chat")
+const input=document.getElementById("prompt")
+const face=document.getElementById("face")
+const status=document.getElementById("status")
+
+let loginStage="username"
+let username=""
+let loggedIn=false
+
+const ADMIN={
+sadra:"1388910s",
+iliya:"1387910i",
+guest:"1234"
+}
+
+/* FACE ANIMATION */
+
+const faces={
+normal:["( ◉_◉ )","( ◎_◎ )"],
+thinking:["( ◉_◉ )","( ◉_◉ ).","( ◉_◉ ).."],
+cool:["( 😎_😎 )","( 😎‿😎 )"],
+scanner:["[▬◉▬▬▬]","[▬▬◉▬▬]","[▬▬▬◉▬]","[▬▬▬▬◉]"]
+}
+
+let mood="scanner"
+let frame=0
+
+setInterval(()=>{
+let arr=faces[mood]||faces.normal
+face.textContent=arr[frame%arr.length]
+frame++
+},400)
+
+/* HELPERS */
+
+function randomDigits(n){
+let s=""
+for(let i=0;i<n;i++){
+s+=Math.floor(Math.random()*10)
+}
+return s
+}
+
+function sleep(ms){
+return new Promise(r=>setTimeout(r,ms))
+}
+
+function print(text){
+chat.textContent+=text
+chat.scrollTop=chat.scrollHeight
+}
+
+function resetChat(){
+chat.textContent=""
+}
+
+/* BOOT INTRO */
+
+async function bootIntro(){
+
+const frames=[
+"INITIALIZING ZENCORE CORE...",
+"LOADING NEURAL MODULES",
+"CONNECTING AI NODE",
+"AUTH SYSTEM ONLINE",
+"",
+"Booting",
+randomDigits(7),
+"("+randomDigits(6),
+"( "+randomDigits(5),
+"( ◉"+randomDigits(4),
+"( ◉_"+randomDigits(3),
+"( ◉_◉"+randomDigits(2),
+"( ◉_◉ "+randomDigits(1),
+"( ◉_◉ )"
+]
+
+for(let f of frames){
+bootText.textContent=f
+await sleep(450)
+}
+
+await sleep(600)
+
+/* FADE OUT */
+boot.style.opacity="0"
+
+setTimeout(()=>{
+boot.style.display="none"
+app.style.display="flex"
+showLogin()
+},1000)
+
+}
+
+/* LOGIN SYSTEM */
+
+function showLogin(){
+
+loggedIn=false
+loginStage="username"
+
+resetChat()
+
+print(
+"[ ZENCORE ADMIN GATEWAY ]\n\n"+
+"ACCESS LEVEL: ROOT\n"+
+"ENTER ADMIN CREDENTIALS.\n\n"+
+"Username:\n"
+)
+
+input.placeholder="> username"
+status.textContent="NOT LOGGED IN"
+
+}
+
+input.addEventListener("keydown", async e=>{
+
+if(e.key!=="Enter") return
+
+let text=input.value.trim()
+input.value=""
+
+/* LOGIN PHASE */
+if(!loggedIn){
+
+if(loginStage==="username"){
+
+username=text
+resetChat()
+
+print(
+"[ ZENCORE ADMIN GATEWAY ]\n\n"+
+"Username: "+username+"\n"+
+"Password:\n"
+)
+
+input.placeholder="> password"
+loginStage="password"
+return
+}
+
+if(loginStage==="password"){
+
+if(ADMIN[username]===text){
+
+loggedIn=true
+status.textContent="LOGGED IN AS: "+username
+mood="cool"
+startMain()
+
+}else{
+mood="scanner"
+showLogin()
+}
+
+return
+}
+
+}
+
+/* AFTER LOGIN → HANDLE COMMANDS */
+handleCommand(text)
+
+})
+
+/* MAIN SCREEN */
+
+function startMain(){
+
+resetChat()
+
+print(
+"ZENCORE ONLINE\n"+
+"Welcome, "+username+"\n\n"+
+"System Ready.\n"+
+"Type your prompt or /help\n\n"
+)
+
+input.placeholder="> enter prompt"
+
+}
+
+/* COMMANDS + AI */
+
+async function handleCommand(text){
+
+if(text==="/help"){
+resetChat()
+print("/help\n/logout\n")
+return
+}
+
+if(text==="/logout"){
+mood="scanner"
+showLogin()
+return
+}
+
+if(text==="/devs"){
+mood="scanner"
+print("Developed By:")
+print(" Iliya Mohamadi(WooD!) , ")
+print("Sadra Sadeghi(SadSad)")
+return
+}
+
+if(!text) return
+
+resetChat()
+
+print(username+" > "+text+"\n\n")
+print("ZENCORE > ")
+
+mood="thinking"
+
+try{
+const res=await fetch(API,{
+method:"POST",
+headers:{ "Content-Type":"application/json" },
+body:JSON.stringify({
+model:"cogito:latest",
+prompt:text,
+stream:false
+})
+})
+const data=await res.json()
+print(data.response)
+}catch{
+print("ERROR: cannot reach AI server")
+}
+
+mood="normal"
+
+}
+
+/* START */
+bootIntro()
+
+</script>
+
+</body>
+</html>
